@@ -40,3 +40,7 @@ dependency-reduced-pom.xml
 # Java Virtual Machine crash logs
 hs_err_pid*
 replay_pid*
+
+# Ignore application secrets
+application.properties
+allegro_token.json
