@@ -43,7 +43,7 @@ public class AllegroApiClient {
         }
     }
 
-    public String get(String url) throws IOException {
+    public <T> T get(String url, Class<T> responseType) throws IOException {
         String accessToken = getValidAccessToken();
 
         return webClient.get()
@@ -51,8 +51,22 @@ public class AllegroApiClient {
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .header(HttpHeaders.ACCEPT, "application/vnd.allegro.public.v1+json")
                 .retrieve()
-                .bodyToMono(String.class)
+                .bodyToMono(responseType)
                 .block(); // .block() makes the reactive call synchronous.
+    }
+
+    public <T> T post(String url, Object requestBody, Class<T> responseType) throws IOException {
+        String accessToken = getValidAccessToken();
+
+        return webClient.post()
+                .uri(url)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .header(HttpHeaders.ACCEPT, "application/vnd.allegro.public.v1+json")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(responseType)
+                .block();
     }
 
     private String getValidAccessToken() throws IOException {
