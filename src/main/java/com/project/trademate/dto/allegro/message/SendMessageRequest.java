@@ -48,7 +48,7 @@ public class SendMessageRequest {
 
         return String.format(
                 "Dzień dobry,\n\n" +
-                        "dziękujemy za zakupy w naszym sklepie i mamy nadzieję, że są Państwo w pełni zadowoleni z otrzymanego produktu.\n\n" +
+                        "Dziękujemy za zakupy w naszym sklepie i mamy nadzieję, że są Państwo w pełni zadowoleni z otrzymanego produktu.\n\n" +
                         "Państwa opinia jest dla nas niezwykle ważna. Jeśli wszystko jest w porządku, będziemy wdzięczni za poświęcenie chwili na wystawienie pozytywnej oceny sprzedaży. Można to zrobić na stronie:\n" +
                         "%s\n\n" +
                         "W razie jakichkolwiek pytań lub wątpliwości, jesteśmy do Państwa dyspozycji. Prosimy o kontakt zwrotny w tej wiadomości.\n\n" +

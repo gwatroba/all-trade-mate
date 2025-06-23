@@ -7,14 +7,17 @@ import com.project.trademate.dto.allegro.order.AllegroOrderResponse;
 import com.project.trademate.dto.allegro.order.CheckoutForm;
 import org.springframework.stereotype.Service;
 
-import javax.print.attribute.standard.PresentationDirection;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+
+import static com.project.trademate.dto.allegro.message.SendMessageRequest.createThankYouRateMessage;
 
 @Service
 public class OrderService {
     private final AllegroApiClient apiClient;
+    private static final String ALLEGRO_V1_CONTENT_TYPE = "application/vnd.allegro.public.v1+json";
 
     public OrderService(AllegroApiClient apiClient) {
         this.apiClient = apiClient;
@@ -60,20 +63,20 @@ public class OrderService {
         return allOrders;
     }
 
-    public MessageResponse sentMessage(String orderId, String userLogin) {
-        String messageText = SendMessageRequest.createThankYouRateMessage(orderId);
-        SendMessageRequest messageRequest = SendMessageRequest.builder()
-                .recipient(SendMessageRequest.Recipient.builder().login(userLogin).build())
-                .text(messageText)
-                .attachments(null)
-                .order(SendMessageRequest.Order.builder().id(orderId).build())
-                .build();
-        MessageResponse response;
-        try {
-            response = apiClient.post("https://api.allegro.pl/messaging/messages", messageRequest, MessageResponse.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return response;
+    public MessageResponse sendThankYouMessage(String orderId, String userLogin) throws IOException {
+        String messageText = createThankYouRateMessage(orderId);
+        String sendMessageUrl = "https://api.allegro.pl/messaging/messages";
+
+        SendMessageRequest.Recipient recipient = new SendMessageRequest.Recipient(userLogin);
+        SendMessageRequest.Order orderContext = new SendMessageRequest.Order(orderId);
+        SendMessageRequest requestBody = new SendMessageRequest(recipient, messageText, Collections.emptyList(), orderContext);
+
+        return apiClient.post(sendMessageUrl, requestBody, MessageResponse.class, ALLEGRO_V1_CONTENT_TYPE);
+    }
+
+    public MessageResponse getMessageDetails(String messageId) throws IOException {
+        System.out.println("SERVICE: Checking status for message ID: " + messageId);
+        String messageDetailsUrl = "https://api.allegro.pl/messaging/messages/" + messageId;
+        return apiClient.get(messageDetailsUrl, MessageResponse.class);
     }
 }

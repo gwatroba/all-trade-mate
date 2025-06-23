@@ -37,8 +37,20 @@ public class OrderController {
     }
 
     @GetMapping("/orders/sent/message")
-    public MessageResponse sentThankYouMessageForSentOrders() {
+    public MessageResponse sentThankYouMessageForSentOrders() throws InterruptedException {
         // get ids and login sent orders
-        return orderService.sentMessage("b790ef70-3d37-11f0-9874-c77964224225", "KonradSiezien");
+        MessageResponse response;
+        try {
+            response = orderService.sendThankYouMessage("a2bdb280-3d7e-11f0-9519-cd725f92e9f4", "karolina1_1k");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        Thread.sleep(60000);// chwile to trwa
+        try {
+            response = orderService.getMessageDetails(response.getId());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return response;
     }
 }

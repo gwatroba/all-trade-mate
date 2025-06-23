@@ -69,6 +69,40 @@ public class AllegroApiClient {
                 .block();
     }
 
+    // This new, overloaded method allows specifying a custom content type.
+    public <T> T post(String url, Object requestBody, Class<T> responseType, String contentType) throws IOException {
+        String accessToken = getValidAccessToken();
+
+        try {
+            return webClient.post()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                    .header(HttpHeaders.ACCEPT, contentType) // For this endpoint, Accept and Content-Type should be the same.
+                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(responseType)
+                    .block();
+        } catch (WebClientResponseException e) {
+            System.err.println("API call to " + url + " failed with status " + e.getRawStatusCode() + " and body " + e.getResponseBodyAsString());
+            throw new IOException("API call failed", e);
+        }
+    }
+
+    public <T> T put(String url, Object requestBody, Class<T> responseType) throws IOException {
+        String accessToken = getValidAccessToken();
+
+        return webClient.put()
+                .uri(url)
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .header(HttpHeaders.ACCEPT, "application/vnd.allegro.public.v1+json")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(requestBody)
+                .retrieve()
+                .bodyToMono(responseType)
+                .block();
+    }
+
     private String getValidAccessToken() throws IOException {
         if (currentTokenData == null) {
             throw new IOException("User not authenticated. Please perform the initial authorization to get a refresh token.");
