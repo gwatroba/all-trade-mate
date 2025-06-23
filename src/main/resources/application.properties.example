@@ -1,0 +1,5 @@
+# Allegro API Credentials
+# Copy this file to 'application.properties' and fill in your actual credentials.
+# The 'application.properties' file is ignored by Git.
+allegro.client.id=YOUR_CLIENT_ID_HERE
+allegro.client.secret=YOUR_CLIENT_SECRET_HERE
