@@ -57,11 +57,11 @@ class OrderServiceTest {
         String expectedContentType = "application/vnd.allegro.public.v1+json";
 
         ArgumentCaptor<SendMessageRequest> requestCaptor = ArgumentCaptor.forClass(SendMessageRequest.class);
-        when(apiClient.post(any(), any(), eq(MessageResponse.class), any())).thenReturn(new MessageResponse());
+        when(apiClient.post(any(), any(), eq(MessageResponse.class))).thenReturn(new MessageResponse());
 
         orderService.sendThankYouMessage(orderId, userLogin);
 
-        verify(apiClient).post(eq(expectedUrl), requestCaptor.capture(), eq(MessageResponse.class), eq(expectedContentType));
+        verify(apiClient).post(eq(expectedUrl), requestCaptor.capture(), eq(MessageResponse.class));
 
         SendMessageRequest capturedRequest = requestCaptor.getValue();
         assertThat(capturedRequest.getRecipient().getLogin()).isEqualTo(userLogin);

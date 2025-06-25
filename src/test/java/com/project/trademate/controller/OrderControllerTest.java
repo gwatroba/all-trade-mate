@@ -33,7 +33,7 @@ public class OrderControllerTest {
                 .fulfillment(Fulfillment.builder().status(OrderStatus.SENT).build())
                 .build();
 
-        when(orderService.getAllOrdersByStatusOlderThanWeek(OrderStatus.SENT)).thenReturn(List.of(sentOrder));
+        when(orderService.getAllOrdersByStatusOlderThanTenDays(OrderStatus.SENT)).thenReturn(List.of(sentOrder));
 
         mockMvc.perform(get("/orders").param("status", "SENT"))
                 .andExpect(status().isOk())
