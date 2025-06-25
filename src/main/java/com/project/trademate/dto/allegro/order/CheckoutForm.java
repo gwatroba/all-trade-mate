@@ -1,8 +1,12 @@
 package com.project.trademate.dto.allegro.order;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.time.Instant;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -17,5 +21,5 @@ public class CheckoutForm {
     private Payment payment;
     private Fulfillment fulfillment;
     private List<LineItem> lineItems;
-    // You can add more fields here later, e.g., Delivery delivery;
+    private Instant updatedAt;
 }

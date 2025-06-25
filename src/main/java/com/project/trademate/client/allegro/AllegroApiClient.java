@@ -12,6 +12,7 @@ import java.io.IOException;
 @Slf4j
 @Service
 public class AllegroApiClient {
+    private static final String ALLEGRO_V1_CONTENT_TYPE = "application/vnd.allegro.public.v1+json";
 
     private final WebClient webClient;
     private final AllegroAuthService authService; // New dependency
@@ -34,7 +35,7 @@ public class AllegroApiClient {
                 .block();
     }
 
-    public <T> T post(String url, Object requestBody, Class<T> responseType, String contentType) throws IOException {
+    public <T> T post(String url, Object requestBody, Class<T> responseType) throws IOException {
         String accessToken = authService.getValidAccessToken();
 
         log.info("Executing POST request to: {}", url);
@@ -42,15 +43,36 @@ public class AllegroApiClient {
             return webClient.post()
                     .uri(url)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                    .header(HttpHeaders.ACCEPT, contentType)
-                    .header(HttpHeaders.CONTENT_TYPE, contentType)
+                    .header(HttpHeaders.ACCEPT, ALLEGRO_V1_CONTENT_TYPE)
+                    .header(HttpHeaders.CONTENT_TYPE, ALLEGRO_V1_CONTENT_TYPE)
                     .bodyValue(requestBody)
                     .retrieve()
                     .bodyToMono(responseType)
                     .block();
         } catch (WebClientResponseException e) {
-            log.error("API call to {} failed with status {} and body {}", url, e.getRawStatusCode(), e.getResponseBodyAsString());
+            log.error("API POST call to {} failed with status {} and body {}", url, e.getRawStatusCode(), e.getResponseBodyAsString());
             throw new IOException("API call failed", e);
         }
     }
+
+    public <T> T put(String url, Object requestBody, Class<T> responseType) throws IOException {
+        String accessToken = authService.getValidAccessToken();
+
+        log.info("Executing PUT request to: {}", url);
+        try {
+            return webClient.put()
+                    .uri(url)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                    .header(HttpHeaders.ACCEPT, ALLEGRO_V1_CONTENT_TYPE)
+                    .header(HttpHeaders.CONTENT_TYPE, ALLEGRO_V1_CONTENT_TYPE)
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono(responseType)
+                    .block();
+        } catch (WebClientResponseException e) {
+            log.error("API PUT call to {} failed with status {} and body {}", url, e.getRawStatusCode(), e.getResponseBodyAsString());
+            throw new IOException("API call failed", e);
+        }
+    }
+
 }

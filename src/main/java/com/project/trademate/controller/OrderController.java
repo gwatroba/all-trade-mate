@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @SuppressWarnings("unused")
@@ -23,26 +24,48 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @GetMapping("/orders")
-    public ResponseEntity<?> getOrders(@RequestParam() OrderStatus status) {
+    @GetMapping("/allorders")
+    public ResponseEntity<?> getAllOrders() {
         try {
             List<CheckoutForm> orders;
-            log.info("CONTROLLER: Fetching orders with status: {}", status.name());
-            orders = orderService.getAllOrdersByStatus(status);
+            log.info("CONTROLLER: Fetching all orders");
+            orders = orderService.getAllOrders();
             return ResponseEntity.ok(orders);
         } catch (IOException e) {
             return ResponseEntity.status(500).body("Error fetching orders: " + e.getMessage());
         }
     }
 
-    @GetMapping("/orders/sent/message")
-    public MessageResponse sentThankYouMessageForStatus() {
-        // get ids and login sent orders
-        MessageResponse response;
+    @GetMapping("/orders")
+    public ResponseEntity<?> getOrders(@RequestParam() OrderStatus status) {
+        try {
+            List<CheckoutForm> orders;
+            log.info("CONTROLLER: Fetching orders with status: {}", status.name());
+            orders = orderService.getAllOrdersByStatusOlderThanTenDays(status);
+            return ResponseEntity.ok(orders);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error fetching orders: " + e.getMessage());
+        }
+    }
 
-        response = orderService.sendThankYouMessage("a2bdb280-3d7e-11f0-9519-cd725f92e9f4", "karolina1_1k");
-        response = orderService.getMessageDetails(response.getId());
+    @GetMapping("/orders/message")
+    public ResponseEntity<?> sentThankYouMessageForStatus(@RequestParam() OrderStatus status) throws InterruptedException {
+        List<MessageResponse> responses = new ArrayList<>();
 
-        return response;
+        List<CheckoutForm> orders;
+        try {
+            orders = orderService.getAllOrdersByStatusOlderThanTenDays(status);
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Error fetching orders: " + e.getMessage());
+        }
+
+        for (CheckoutForm order : orders) {
+            log.info("Sending message to: {} for orderId: {}", order.getId(), order.getBuyer().getLogin());
+            MessageResponse messageResponse = orderService.sendThankYouMessage(order.getId(), order.getBuyer().getLogin());
+            orderService.setFulfillmentStatus(order.getId(), OrderStatus.PICKED_UP);
+            responses.add(messageResponse);
+            Thread.sleep(3000);
+        }
+        return ResponseEntity.ok(responses);
     }
 }

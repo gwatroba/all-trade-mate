@@ -10,8 +10,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.mockito.Mockito.when;
@@ -35,7 +33,7 @@ public class OrderControllerTest {
                 .fulfillment(Fulfillment.builder().status(OrderStatus.SENT).build())
                 .build();
 
-        when(orderService.getAllOrdersByStatus(OrderStatus.SENT)).thenReturn(List.of(sentOrder));
+        when(orderService.getAllOrdersByStatusOlderThanWeek(OrderStatus.SENT)).thenReturn(List.of(sentOrder));
 
         mockMvc.perform(get("/orders").param("status", "SENT"))
                 .andExpect(status().isOk())

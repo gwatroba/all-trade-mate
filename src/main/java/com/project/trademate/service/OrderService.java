@@ -5,12 +5,15 @@ import com.project.trademate.dto.allegro.message.MessageResponse;
 import com.project.trademate.dto.allegro.message.SendMessageRequest;
 import com.project.trademate.dto.allegro.order.AllegroOrderResponse;
 import com.project.trademate.dto.allegro.order.CheckoutForm;
+import com.project.trademate.dto.allegro.order.Fulfillment;
 import com.project.trademate.enums.OrderStatus;
 import com.project.trademate.exception.MessagingApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import static com.project.trademate.dto.allegro.message.SendMessageRequest.createThankYouRateMessage;
@@ -19,13 +22,24 @@ import static com.project.trademate.dto.allegro.message.SendMessageRequest.creat
 @Service
 public class OrderService {
     private final AllegroApiClient apiClient;
-    private static final String ALLEGRO_V1_CONTENT_TYPE = "application/vnd.allegro.public.v1+json";
 
     public OrderService(AllegroApiClient apiClient) {
         this.apiClient = apiClient;
     }
 
-    public List<CheckoutForm> getAllOrdersByStatus(OrderStatus status) throws IOException {
+    public List<CheckoutForm> getAllOrders() throws IOException {
+        log.info("SERVICE: Starting to fetch all orders");
+
+        String url = "https://api.allegro.pl/order/checkout-forms";
+
+        List<CheckoutForm> allOrders = apiClient.get(url, AllegroOrderResponse.class).getCheckoutForms();
+
+        log.info("SERVICE: Finished fetching. Total orders found: {}", allOrders.size());
+        return allOrders;
+    }
+
+    // TODO: add tests for that method
+    public List<CheckoutForm> getAllOrdersByStatusOlderThanTenDays(OrderStatus status) throws IOException {
         log.info("SERVICE: Starting to fetch all orders with status: {}", status);
 
         String url = String.format("https://api.allegro.pl/order/checkout-forms?fulfillment.status=%s", status);
@@ -33,7 +47,28 @@ public class OrderService {
         List<CheckoutForm> allOrders = apiClient.get(url, AllegroOrderResponse.class).getCheckoutForms();
 
         log.info("SERVICE: Finished fetching. Total orders found: {}", allOrders.size());
-        return allOrders;
+        return allOrders.stream()
+                .filter(checkoutForm -> checkoutForm.getLineItems().get(0).getBoughtAt()
+                        .isBefore(Instant.now().minus(10, ChronoUnit.DAYS)))
+                .toList();
+    }
+
+    public CheckoutForm setFulfillmentStatus(String orderId, OrderStatus status) {
+        log.info("SERVICE: Setting order: {} with status: {}", orderId, status);
+
+        String url = String.format("https://api.allegro.pl/order/checkout-forms/%s/fulfillment", orderId);
+        Fulfillment fulfillment = Fulfillment.builder().status(status).build();
+
+        CheckoutForm updatedOrder;
+        try {
+            updatedOrder = apiClient.put(url, fulfillment, CheckoutForm.class);
+        } catch (IOException e) {
+            log.error("Failed to update orderId: {}", orderId, e);
+            throw new RuntimeException("Failed update order " + orderId, e);
+        }
+
+        log.info("SERVICE: Finished update. Response: {}", updatedOrder);
+        return updatedOrder;
     }
 
     public MessageResponse sendThankYouMessage(String orderId, String userLogin) {
@@ -48,7 +83,7 @@ public class OrderService {
                 .text(messageText)
                 .build();
         try {
-            MessageResponse response = apiClient.post(sendMessageUrl, requestBody, MessageResponse.class, ALLEGRO_V1_CONTENT_TYPE);
+            MessageResponse response = apiClient.post(sendMessageUrl, requestBody, MessageResponse.class);
             log.info("Successfully sent message for orderId: {}. MessageId: {}", orderId, response.getId());
             return response;
         } catch (IOException e) {
