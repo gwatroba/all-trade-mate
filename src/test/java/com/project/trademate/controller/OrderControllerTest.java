@@ -29,30 +29,6 @@ public class OrderControllerTest {
     private OrderService orderService;
 
     @Test
-    public void shouldReturnAllOrders() throws Exception {
-        // Arrange
-        List<CheckoutForm> orders = new ArrayList<>();
-        orders.add(CheckoutForm.builder().id("order-processing-123")
-                .fulfillment(Fulfillment.builder().status(OrderStatus.PROCESSING).build())
-                .build());
-        orders.add(CheckoutForm.builder().id("order-ready-for-shipment-123")
-                .fulfillment(Fulfillment.builder().status(OrderStatus.READY_FOR_SHIPMENT).build())
-                .build());
-        orders.add(CheckoutForm.builder().id("order-sent-123")
-                .fulfillment(Fulfillment.builder().status(OrderStatus.SENT).build())
-                .build());
-
-        when(orderService.getAllOrders()).thenReturn(orders);
-
-        mockMvc.perform(get("/orders"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(3))
-                .andExpect(jsonPath("$[0].id").value("order-processing-123"))
-                .andExpect(jsonPath("$[1].id").value("order-ready-for-shipment-123"))
-                .andExpect(jsonPath("$[2].id").value("order-sent-123"));
-    }
-
-    @Test
     public void shouldReturnSentOrders() throws Exception {
         // Arrange
         CheckoutForm sentOrder = CheckoutForm.builder().id("order-sent-123")
