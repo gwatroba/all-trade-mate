@@ -1,11 +1,15 @@
 package com.project.trademate.dto.allegro.order;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.Data;
+import lombok.*;
+
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class CheckoutForm {
     private String id;
     private String status;

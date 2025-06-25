@@ -19,13 +19,12 @@ public class TokenStorage {
         this.objectMapper = objectMapper;
     }
 
-    public void saveTokensFromNode(JsonNode tokenJson) throws IOException {
+    public void saveTokensFromResponse(TokenResponse tokenResponse) throws IOException {
         ObjectNode persistentData = objectMapper.createObjectNode();
-        persistentData.put("refresh_token", tokenJson.get("refresh_token").asText());
+        persistentData.put("refresh_token", tokenResponse.getRefreshToken());
 
         Path tempFile = TOKEN_FILE_PATH.resolveSibling(TOKEN_FILE_PATH.getFileName() + ".tmp");
         Files.writeString(tempFile, persistentData.toString());
-
         Files.move(tempFile, TOKEN_FILE_PATH, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
     }
 

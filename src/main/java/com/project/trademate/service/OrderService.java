@@ -5,15 +5,17 @@ import com.project.trademate.dto.allegro.message.MessageResponse;
 import com.project.trademate.dto.allegro.message.SendMessageRequest;
 import com.project.trademate.dto.allegro.order.AllegroOrderResponse;
 import com.project.trademate.dto.allegro.order.CheckoutForm;
+import com.project.trademate.enums.OrderStatus;
+import com.project.trademate.exception.MessagingApiException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static com.project.trademate.dto.allegro.message.SendMessageRequest.createThankYouRateMessage;
 
+@Slf4j
 @Service
 public class OrderService {
     private final AllegroApiClient apiClient;
@@ -23,60 +25,47 @@ public class OrderService {
         this.apiClient = apiClient;
     }
 
-    public List<CheckoutForm> getAllOrders() {
-        String url = "https://api.allegro.pl/order/checkout-forms";
-        try {
-            return apiClient.get(url, AllegroOrderResponse.class).getCheckoutForms();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    public List<CheckoutForm> getAllOrdersByStatus(OrderStatus status) throws IOException {
+        log.info("SERVICE: Starting to fetch all orders with status: {}", status);
 
-    public List<CheckoutForm> getAllOrdersByStatus(String status) throws IOException {
-        List<CheckoutForm> allOrders = new ArrayList<>();
-        int limit = 100;
-        int offset = 0;
-        int totalCount;
+        String url = String.format("https://api.allegro.pl/order/checkout-forms?fulfillment.status=%s", status);
 
-        System.out.println("SERVICE: Starting to fetch all orders with status: " + status);
+        List<CheckoutForm> allOrders = apiClient.get(url, AllegroOrderResponse.class).getCheckoutForms();
 
-        do {
-            String url = String.format(
-                    "https://api.allegro.pl/order/checkout-forms?fulfillment.status=%s&limit=%d&offset=%d",
-                    status, limit, offset
-            );
-
-            AllegroOrderResponse page = apiClient.get(url, AllegroOrderResponse.class);
-
-            if (page != null && page.getCheckoutForms() != null) {
-                allOrders.addAll(page.getCheckoutForms());
-                totalCount = page.getTotalCount();
-                offset += page.getCount();
-            } else {
-                // If the response is null or doesn't contain orders, stop the loop.
-                totalCount = 0;
-            }
-
-        } while (offset < totalCount);
-
-        System.out.println("SERVICE: Finished fetching. Total orders found: " + allOrders.size());
+        log.info("SERVICE: Finished fetching. Total orders found: {}", allOrders.size());
         return allOrders;
     }
 
-    public MessageResponse sendThankYouMessage(String orderId, String userLogin) throws IOException {
+    public MessageResponse sendThankYouMessage(String orderId, String userLogin) {
         String messageText = createThankYouRateMessage(orderId);
         String sendMessageUrl = "https://api.allegro.pl/messaging/messages";
 
-        SendMessageRequest.Recipient recipient = new SendMessageRequest.Recipient(userLogin);
-        SendMessageRequest.Order orderContext = new SendMessageRequest.Order(orderId);
-        SendMessageRequest requestBody = new SendMessageRequest(recipient, messageText, Collections.emptyList(), orderContext);
+        log.info("Preparing to send a thank-you message for orderId: {}", orderId);
 
-        return apiClient.post(sendMessageUrl, requestBody, MessageResponse.class, ALLEGRO_V1_CONTENT_TYPE);
+        SendMessageRequest requestBody = SendMessageRequest.builder()
+                .recipient(SendMessageRequest.Recipient.builder().login(userLogin).build())
+                .order(SendMessageRequest.Order.builder().id(orderId).build())
+                .text(messageText)
+                .build();
+        try {
+            MessageResponse response = apiClient.post(sendMessageUrl, requestBody, MessageResponse.class, ALLEGRO_V1_CONTENT_TYPE);
+            log.info("Successfully sent message for orderId: {}. MessageId: {}", orderId, response.getId());
+            return response;
+        } catch (IOException e) {
+            log.error("Failed to send message for orderId: {}", orderId, e);
+            throw new MessagingApiException("Failed to send message for order " + orderId, e);
+        }
     }
 
-    public MessageResponse getMessageDetails(String messageId) throws IOException {
-        System.out.println("SERVICE: Checking status for message ID: " + messageId);
+    public MessageResponse getMessageDetails(String messageId) {
+        log.info("SERVICE: Checking status for message ID: {}", messageId);
         String messageDetailsUrl = "https://api.allegro.pl/messaging/messages/" + messageId;
-        return apiClient.get(messageDetailsUrl, MessageResponse.class);
+
+        try {
+            return apiClient.get(messageDetailsUrl, MessageResponse.class);
+        } catch (IOException e) {
+            log.error("Failed to get details for messageId: {}", messageId, e);
+            throw new MessagingApiException("Failed to get details for message " + messageId, e);
+        }
     }
 }

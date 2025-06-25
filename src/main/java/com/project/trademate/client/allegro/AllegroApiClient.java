@@ -3,7 +3,9 @@ package com.project.trademate.client.allegro;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.project.trademate.auth.TokenData;
+import com.project.trademate.auth.TokenResponse;
 import com.project.trademate.auth.TokenStorage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -17,6 +19,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
+@Slf4j
 @Service
 public class AllegroApiClient {
 
@@ -55,21 +58,6 @@ public class AllegroApiClient {
                 .block(); // .block() makes the reactive call synchronous.
     }
 
-    public <T> T post(String url, Object requestBody, Class<T> responseType) throws IOException {
-        String accessToken = getValidAccessToken();
-
-        return webClient.post()
-                .uri(url)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .header(HttpHeaders.ACCEPT, "application/vnd.allegro.public.v1+json")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(responseType)
-                .block();
-    }
-
-    // This new, overloaded method allows specifying a custom content type.
     public <T> T post(String url, Object requestBody, Class<T> responseType, String contentType) throws IOException {
         String accessToken = getValidAccessToken();
 
@@ -84,7 +72,7 @@ public class AllegroApiClient {
                     .bodyToMono(responseType)
                     .block();
         } catch (WebClientResponseException e) {
-            System.err.println("API call to " + url + " failed with status " + e.getRawStatusCode() + " and body " + e.getResponseBodyAsString());
+            log.error("API call to {} failed with status {} and body {}", url, e.getRawStatusCode(), e.getResponseBodyAsString());
             throw new IOException("API call failed", e);
         }
     }
@@ -107,12 +95,10 @@ public class AllegroApiClient {
         if (currentTokenData == null) {
             throw new IOException("User not authenticated. Please perform the initial authorization to get a refresh token.");
         }
-
         if (currentTokenData.isAccessTokenExpired()) {
             System.out.println("Access Token expired or not present. Refreshing...");
             refreshAccessToken();
         }
-
         return currentTokenData.getAccessToken();
     }
 
@@ -133,31 +119,33 @@ public class AllegroApiClient {
         System.out.println("Sending request to refresh token using WebClient...");
 
         try {
-            String responseBody = webClient.post()
+            TokenResponse tokenResponse = webClient.post()
                     .uri(tokenUrl)
                     .header(HttpHeaders.AUTHORIZATION, authHeader)
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .bodyValue(formData)
                     .retrieve()
-                    .bodyToMono(String.class)
+                    .bodyToMono(TokenResponse.class)
                     .block();
 
-            JsonNode jsonResponse = objectMapper.readTree(responseBody);
+            if (tokenResponse == null) {
+                throw new IOException("Received null response from token endpoint.");
+            }
 
             this.currentTokenData = new TokenData(
-                    jsonResponse.get("access_token").asText(),
-                    jsonResponse.get("refresh_token").asText(),
-                    jsonResponse.get("expires_in").asInt()
+                    tokenResponse.getAccessToken(),
+                    tokenResponse.getRefreshToken(),
+                    tokenResponse.getExpiresIn()
             );
 
-            tokenStorage.saveTokensFromNode(jsonResponse);
+            tokenStorage.saveTokensFromResponse(tokenResponse);
             System.out.println("Token refreshed successfully.");
 
         } catch (WebClientResponseException e) {
             int statusCode = e.getStatusCode().value();
             if (statusCode == 400 || statusCode == 401) {
-                System.err.println("FATAL: Refresh token is invalid or has been revoked. Manual re-authentication is required.");
-                System.err.println("Allegro response: " + e.getResponseBodyAsString());
+                log.error("FATAL: Refresh token is invalid or has been revoked. Manual re-authentication is required.");
+                log.error("Allegro response: {}", e.getResponseBodyAsString());
                 throw new IOException("Permanent authentication error. Please re-authorize the application.", e);
             }
             throw new IOException("Failed to refresh token, server responded with status " + statusCode, e);
