@@ -3,3 +3,5 @@
 # The 'application.properties' file is ignored by Git.
 allegro.client.id=YOUR_CLIENT_ID_HERE
 allegro.client.secret=YOUR_CLIENT_SECRET_HERE
+spring.security.user.name=API_USERNAME
+spring.security.user.password=API_PASSWORD

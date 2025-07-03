@@ -1,0 +1,44 @@
+version: '3.7'
+
+services:
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    restart: always
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_FUNCTION_ALLOW_INTERNAL=ollama,trademate-app
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      - ollama
+      - trademate-app
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: always
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  trademate-app:
+    build: .
+    container_name: trademate-app
+    restart: always
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./application.properties:/app/application.properties
+      - ./allegro_token.json:/app/allegro_token.json
+    depends_on:
+      - ollama
+
+volumes:
+  n8n_data:
+  ollama_data:
