@@ -11,9 +11,9 @@
     </parent>
 
     <groupId>com.project.trademate</groupId>
-    <artifactId>tradeMate</artifactId>
+    <artifactId>all-trade-mate</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>tradeMate</name>
+    <name>all-trade-mate</name>
     <description>Allegro API integration project</description>
     <url>https://github.com/grzegorz-watroba/tradeMate</url>
     <properties>

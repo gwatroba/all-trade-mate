@@ -1,12 +1,8 @@
 package com.project.trademate.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.project.trademate.client.allegro.AllegroApiClient;
-import com.project.trademate.dto.allegro.order.AllegroOrderResponse;
-import com.project.trademate.dto.allegro.order.CheckoutForm;
 import com.project.trademate.dto.allegro.message.MessageResponse;
 import com.project.trademate.dto.allegro.message.SendMessageRequest;
-import com.project.trademate.enums.OrderStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,7 +11,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
