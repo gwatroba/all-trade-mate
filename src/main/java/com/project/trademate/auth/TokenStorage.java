@@ -23,9 +23,8 @@ public class TokenStorage {
         ObjectNode persistentData = objectMapper.createObjectNode();
         persistentData.put("refresh_token", tokenResponse.getRefreshToken());
 
-        Path tempFile = TOKEN_FILE_PATH.resolveSibling(TOKEN_FILE_PATH.getFileName() + ".tmp");
-        Files.writeString(tempFile, persistentData.toString());
-        Files.move(tempFile, TOKEN_FILE_PATH, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+        String fileContent = persistentData.toString();
+        Files.writeString(TOKEN_FILE_PATH, fileContent);
     }
 
     public String loadRefreshToken() throws IOException {

@@ -1,8 +1,8 @@
 package com.project.trademate.controller;
 
 import com.project.trademate.dto.allegro.order.CheckoutForm;
-import com.project.trademate.dto.allegro.order.Fulfillment;
 import com.project.trademate.enums.OrderStatus;
+import com.project.trademate.service.MessageService;
 import com.project.trademate.service.OrderService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +12,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static com.project.trademate.enums.OrderStatus.PICKED_UP;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -25,26 +27,67 @@ public class OrderControllerTest {
 
     @MockBean
     private OrderService orderService;
+    @MockBean
+    private MessageService messageService;
 
-    //TODO: adjust to auth
-//    @Test
-//    public void shouldReturnSentOrders() throws Exception {
-//        // Arrange
-//        CheckoutForm sentOrder = CheckoutForm.builder().id("order-sent-123")
-//                .fulfillment(Fulfillment.builder().status(OrderStatus.SENT).build())
-//                .build();
-//
-//        when(orderService.getAllOrdersByStatusOlderThanTenDays(OrderStatus.SENT)).thenReturn(List.of(sentOrder));
-//
-//        mockMvc.perform(get("/orders").param("status", "SENT"))
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.length()").value(1))
-//                .andExpect(jsonPath("$[0].id").value("order-sent-123"));
-//    }
-//
-//    @Test
-//    public void shouldReturnBadRequest() throws Exception {
-//        mockMvc.perform(get("/orders").param("status", "NOT_EXISTS"))
-//                .andExpect(status().isBadRequest());
-//    }
+    @Test
+    public void shouldReturnAllOrders() throws Exception {
+        // given
+        CheckoutForm sentOrderOne = new CheckoutForm();
+        sentOrderOne.setId("sent-order-123");
+        CheckoutForm sentOrderTwo = new CheckoutForm();
+        sentOrderTwo.setId("sent-order-456");
+
+        when(orderService.getAllOrdersByStatusOlderThan(OrderStatus.SENT, 0))
+                .thenReturn(List.of(sentOrderOne, sentOrderTwo));
+        when(orderService.getAllOrdersByStatusOlderThan(OrderStatus.SENT, 7))
+                .thenReturn(List.of(sentOrderTwo));
+
+        //then
+        mockMvc.perform(get("/api/orders")
+                        .param("status", "SENT")
+                        .with(httpBasic("testuser", "testpassword")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].id").value("sent-order-123"))
+                .andExpect(jsonPath("$[1].id").value("sent-order-456"));
+    }
+
+    @Test
+    public void shouldReturnAllOrdersOlderThan() throws Exception {
+        // given
+        CheckoutForm sentOrderOne = new CheckoutForm();
+        sentOrderOne.setId("sent-order-123");
+        CheckoutForm sentOrderTwo = new CheckoutForm();
+        sentOrderTwo.setId("sent-order-456");
+
+        when(orderService.getAllOrdersByStatusOlderThan(OrderStatus.SENT, 0))
+                .thenReturn(List.of(sentOrderOne, sentOrderTwo));
+        when(orderService.getAllOrdersByStatusOlderThan(OrderStatus.SENT, 7))
+                .thenReturn(List.of(sentOrderTwo));
+
+        //then
+        mockMvc.perform(get("/api/orders")
+                        .param("status", "SENT")
+                        .param("ageInDays", "7")
+                        .with(httpBasic("testuser", "testpassword")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value("sent-order-456"));
+    }
+
+    @Test
+    public void shouldReturnUnauthorized() throws Exception {
+        // given
+        CheckoutForm sentOrder = new CheckoutForm();
+        sentOrder.setId("sent-order-123");
+
+        when(orderService.getAllOrdersByStatusOlderThan(OrderStatus.SENT, 0))
+                .thenReturn(List.of(sentOrder));
+        //then
+        mockMvc.perform(get("/api/orders")
+                        .param("status", "SENT")
+                        .with(httpBasic("user", "wrongPass")))
+                .andExpect(status().isUnauthorized());
+    }
 }
